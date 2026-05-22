@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.next-stale-*/
+.npm-cache/
+dist/
+out/
+*.log
+.DS_Store
+tsconfig.tsbuildinfo

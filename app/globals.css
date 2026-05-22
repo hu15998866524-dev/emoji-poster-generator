@@ -1,0 +1,43 @@
+:root {
+  --page-bg: #151515;
+  --panel-bg: rgba(248, 248, 242, 0.06);
+  --panel-border: rgba(255, 255, 255, 0.14);
+  --muted: rgba(255, 255, 255, 0.62);
+  --text: #f8f8f0;
+  --accent: #d7ff68;
+  --control-bg: rgba(255, 255, 255, 0.08);
+  --control-bg-strong: rgba(255, 255, 255, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--text);
+}
+
+body {
+  font-family: "Arial Narrow", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", Arial, sans-serif;
+  letter-spacing: 0;
+}
+
+button,
+textarea,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: rgba(215, 255, 104, 0.32);
+}
