@@ -1,5 +1,5 @@
 export type Density = "low" | "medium" | "high";
-export type AspectRatio = "9:16" | "16:9";
+export type AspectRatio = "9:16" | "2:3" | "3:4" | "1:1" | "4:3" | "3:2" | "16:9";
 
 type Fragment = {
   type: "text" | "emoji";
@@ -63,9 +63,59 @@ const layoutPatterns = [
   { size: 1.3, width: 96, indent: 14, leading: 0.82, opacity: 1 }
 ];
 
-export const posterPresets: Record<AspectRatio, { pad: string }> = {
-  "9:16": { pad: "8.4%" },
-  "16:9": { pad: "5.5%" }
+export const posterPresets: Record<
+  AspectRatio,
+  { label: string; cssAspectRatio: string; pad: string; defaultFontSize: number; orientation: "portrait" | "square" | "landscape" }
+> = {
+  "9:16": {
+    label: "9:16 手机海报",
+    cssAspectRatio: "9 / 16",
+    pad: "8.4%",
+    defaultFontSize: 36,
+    orientation: "portrait"
+  },
+  "2:3": {
+    label: "2:3 竖版海报",
+    cssAspectRatio: "2 / 3",
+    pad: "8%",
+    defaultFontSize: 38,
+    orientation: "portrait"
+  },
+  "3:4": {
+    label: "3:4 小红书/封面",
+    cssAspectRatio: "3 / 4",
+    pad: "7.2%",
+    defaultFontSize: 40,
+    orientation: "portrait"
+  },
+  "1:1": {
+    label: "1:1 方图",
+    cssAspectRatio: "1 / 1",
+    pad: "6.6%",
+    defaultFontSize: 38,
+    orientation: "square"
+  },
+  "4:3": {
+    label: "4:3 横版图",
+    cssAspectRatio: "4 / 3",
+    pad: "5.8%",
+    defaultFontSize: 36,
+    orientation: "landscape"
+  },
+  "3:2": {
+    label: "3:2 横版图",
+    cssAspectRatio: "3 / 2",
+    pad: "5.6%",
+    defaultFontSize: 34,
+    orientation: "landscape"
+  },
+  "16:9": {
+    label: "16:9 横版封面",
+    cssAspectRatio: "16 / 9",
+    pad: "5.5%",
+    defaultFontSize: 32,
+    orientation: "landscape"
+  }
 };
 
 export const examples = [

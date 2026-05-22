@@ -30,9 +30,9 @@
   max-width: 940px;
 }
 
-.canvasShell {
-  position: relative;
-  width: 100%;
+.posterFrame.square {
+  width: min(68vh, 100%);
+  max-width: 620px;
 }
 
 .poster {
@@ -41,9 +41,7 @@
   position: relative;
   overflow: hidden;
   padding: var(--poster-pad);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  display: block;
   isolation: isolate;
 }
 
@@ -61,6 +59,10 @@
 
 .posterTopline,
 .posterFoot {
+  position: absolute;
+  left: var(--poster-pad);
+  right: var(--poster-pad);
+  z-index: 2;
   display: flex;
   justify-content: space-between;
   gap: 16px;
@@ -71,17 +73,26 @@
   text-transform: uppercase;
 }
 
+.posterTopline {
+  top: var(--poster-pad);
+}
+
 .posterFoot {
+  bottom: var(--poster-pad);
   align-items: flex-end;
 }
 
 .posterText {
-  width: 100%;
+  position: absolute;
+  top: calc(var(--poster-pad) + 8%);
+  right: var(--poster-pad);
+  bottom: calc(var(--poster-pad) + 8%);
+  left: var(--poster-pad);
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: clamp(3px, 0.65vw, 10px);
-  margin: 5% 0;
+  margin: 0;
 }
 
 .posterLine {
@@ -158,51 +169,6 @@
   line-height: 0;
   vertical-align: 0.05em;
   margin: 0 0.04em;
-}
-
-.resizeHandle {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  width: 32px;
-  height: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  border-radius: 50%;
-  background:
-    linear-gradient(135deg, transparent 50%, rgba(23, 23, 23, 0.82) 50%),
-    var(--accent);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.34);
-  cursor: nwse-resize;
-  touch-action: none;
-}
-
-.resizeHandle::before,
-.resizeHandle::after {
-  content: "";
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  width: 10px;
-  height: 2px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  transform: rotate(-45deg);
-  transform-origin: right center;
-}
-
-.resizeHandle::after {
-  right: 8px;
-  bottom: 13px;
-  width: 16px;
-}
-
-.resizeHandle:hover,
-.resizeHandle:focus-visible {
-  transform: scale(1.06);
-  outline: none;
-  box-shadow:
-    0 12px 24px rgba(0, 0, 0, 0.34),
-    0 0 0 4px rgba(215, 255, 104, 0.2);
 }
 
 .studio {
@@ -350,6 +316,43 @@
   background: var(--control-bg);
 }
 
+.imageControl {
+  grid-column: 1 / -1;
+}
+
+.imageUploadRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.imageUploadRow input[type="file"] {
+  min-width: 0;
+  height: 39px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--control-bg);
+  color: var(--text);
+  padding: 8px 10px;
+}
+
+.imageUploadRow button {
+  min-width: 58px;
+  height: 39px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--control-bg);
+  color: var(--text);
+}
+
+.imageControl small {
+  min-width: 0;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .slider {
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -401,6 +404,10 @@
 
   .posterFrame {
     width: min(52vh, 100%);
+  }
+
+  .posterFrame.square {
+    width: min(72vh, 100%);
   }
 }
 

@@ -26,19 +26,18 @@ const DEFAULT_TEXT = `爱好
 
 const MIN_FONT_SIZE = 28;
 const MAX_FONT_SIZE = 82;
-const DEFAULT_FONT_SIZE_BY_RATIO: Record<AspectRatio, number> = {
-  "9:16": 40,
-  "16:9": 40
-};
+const RATIO_OPTIONS: AspectRatio[] = ["9:16", "2:3", "3:4", "1:1", "4:3", "3:2", "16:9"];
 
 export default function Home() {
   const [input, setInput] = useState(DEFAULT_TEXT);
   const [seed, setSeed] = useState(18);
   const [bgColor, setBgColor] = useState("#ffffff");
+  const [bgImage, setBgImage] = useState<string | null>(null);
+  const [bgImageName, setBgImageName] = useState("");
   const [textColor, setTextColor] = useState("#111111");
   const [density, setDensity] = useState<Density>("medium");
   const [ratio, setRatio] = useState<AspectRatio>("9:16");
-  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE_BY_RATIO[ratio]);
+  const [fontSize, setFontSize] = useState(posterPresets[ratio].defaultFontSize);
   const [englishOverrides, setEnglishOverrides] = useState<Record<string, string>>({});
   const posterRef = useRef<HTMLDivElement>(null);
   const labelsNeedingEnglish = useMemo(() => getLabelsNeedingEnglish(input), [input]);
@@ -106,19 +105,39 @@ export default function Home() {
     link.click();
   }, [bgColor]);
 
+  const uploadBackgroundImage = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setBgImage(typeof reader.result === "string" ? reader.result : null);
+      setBgImageName(file.name);
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  }, []);
+
+  const removeBackgroundImage = useCallback(() => {
+    setBgImage(null);
+    setBgImageName("");
+  }, []);
+
   return (
     <main className={styles.app}>
       <section className={styles.stage} aria-label="海报预览">
         <div
-          className={`${styles.posterFrame} ${ratio === "16:9" ? styles.landscape : ""}`}
+          className={`${styles.posterFrame} ${
+            posterPresets[ratio].orientation === "landscape" ? styles.landscape : ""
+          } ${posterPresets[ratio].orientation === "square" ? styles.square : ""}`}
         >
           <PosterCanvas
             refNode={posterRef}
             lines={lines}
             bgColor={bgColor}
+            bgImage={bgImage}
             textColor={textColor}
             fontSize={fontSize}
-            onFontSizeChange={setFontSize}
             ratio={ratio}
           />
         </div>
@@ -155,6 +174,19 @@ export default function Home() {
           <ColorControl label="背景颜色" value={bgColor} onChange={setBgColor} />
           <ColorControl label="文字颜色" value={textColor} onChange={setTextColor} />
 
+          <label className={`${styles.control} ${styles.imageControl}`}>
+            <span>背景图片</span>
+            <div className={styles.imageUploadRow}>
+              <input type="file" accept="image/*" onChange={uploadBackgroundImage} />
+              {bgImage ? (
+                <button type="button" onClick={removeBackgroundImage}>
+                  移除
+                </button>
+              ) : null}
+            </div>
+            <small>{bgImageName || "未上传图片"}</small>
+          </label>
+
           <label className={styles.control}>
             <span>Emoji 密度</span>
             <select
@@ -174,11 +206,14 @@ export default function Home() {
               onChange={(event) => {
                 const nextRatio = event.target.value as AspectRatio;
                 setRatio(nextRatio);
-                setFontSize(DEFAULT_FONT_SIZE_BY_RATIO[nextRatio]);
+                setFontSize(posterPresets[nextRatio].defaultFontSize);
               }}
             >
-              <option value="9:16">9:16 手机海报</option>
-              <option value="16:9">16:9 横版封面</option>
+              {RATIO_OPTIONS.map((option) => (
+                <option value={option} key={option}>
+                  {posterPresets[option].label}
+                </option>
+              ))}
             </select>
           </label>
         </div>
@@ -217,103 +252,70 @@ function PosterCanvas({
   refNode,
   lines,
   bgColor,
+  bgImage,
   textColor,
   fontSize,
-  onFontSizeChange,
   ratio
 }: {
   refNode: React.RefObject<HTMLDivElement | null>;
   lines: PosterLine[];
   bgColor: string;
+  bgImage: string | null;
   textColor: string;
   fontSize: number;
-  onFontSizeChange: (value: number) => void;
   ratio: AspectRatio;
 }) {
   const preset = posterPresets[ratio];
-
-  const startFontResize = useCallback(
-    (event: React.PointerEvent<HTMLButtonElement>) => {
-      event.preventDefault();
-      event.currentTarget.setPointerCapture(event.pointerId);
-
-      const startX = event.clientX;
-      const startY = event.clientY;
-      const startSize = fontSize;
-
-      const handlePointerMove = (moveEvent: PointerEvent) => {
-        const dragDelta = (moveEvent.clientX - startX + moveEvent.clientY - startY) * 0.24;
-        const nextSize = Math.round(startSize + dragDelta);
-        onFontSizeChange(clamp(nextSize, MIN_FONT_SIZE, MAX_FONT_SIZE));
-      };
-
-      const stopResize = () => {
-        window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("pointerup", stopResize);
-        window.removeEventListener("pointercancel", stopResize);
-      };
-
-      window.addEventListener("pointermove", handlePointerMove);
-      window.addEventListener("pointerup", stopResize);
-      window.addEventListener("pointercancel", stopResize);
-    },
-    [fontSize, onFontSizeChange]
-  );
+  const isLandscape = preset.orientation === "landscape";
 
   return (
-    <div className={styles.canvasShell}>
-      <div
-        ref={refNode}
-        className={`${styles.poster} ${ratio === "16:9" ? styles.posterLandscape : ""}`}
-        style={{
-          backgroundColor: bgColor,
-          color: textColor,
-          aspectRatio: ratio === "9:16" ? "9 / 16" : "16 / 9",
-          "--base-font-size": `${fontSize}px`,
-          "--poster-pad": preset.pad
-        } as React.CSSProperties}
-      >
-        <div className={styles.posterTopline}>
-          <span>#MixedType</span>
-          <span>2026</span>
-        </div>
-        <div className={styles.posterText}>
-          {lines.map((line, index) => (
-            <div
-              key={`${line.label}-${index}-${line.english}`}
-              className={styles.posterLine}
-              style={{
-                "--line-size": line.size,
-                "--line-width": line.width,
-                "--line-indent": line.indent,
-                "--line-leading": line.leading,
-                "--line-opacity": line.opacity
-              } as React.CSSProperties}
-            >
-              {line.fragments.map((fragment, fragmentIndex) =>
-                fragment.type === "emoji" ? (
-                  <span className={styles.emoji} key={`${fragment.value}-${fragmentIndex}`}>
-                    {fragment.value}
-                  </span>
-                ) : (
-                  <span key={`${fragment.value}-${fragmentIndex}`}>{fragment.value}</span>
-                )
-              )}
-            </div>
-          ))}
-        </div>
-        <div className={styles.posterFoot}>
-          <span>Designed with everyday words</span>
-          <span>CN / EN / Emoji</span>
-        </div>
+    <div
+      ref={refNode}
+      className={`${styles.poster} ${isLandscape ? styles.posterLandscape : ""}`}
+      style={{
+        backgroundColor: bgColor,
+        backgroundImage: bgImage ? `url("${bgImage}")` : undefined,
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+        color: textColor,
+        aspectRatio: preset.cssAspectRatio,
+        "--base-font-size": `${fontSize}px`,
+        "--poster-pad": preset.pad
+      } as React.CSSProperties}
+    >
+      <div className={styles.posterTopline}>
+        <span>#MixedType</span>
+        <span>2026</span>
       </div>
-      <button
-        type="button"
-        className={styles.resizeHandle}
-        onPointerDown={startFontResize}
-        aria-label="拖动调整字体大小"
-        title="拖动调整字体大小"
-      />
+      <div className={styles.posterText}>
+        {lines.map((line, index) => (
+          <div
+            key={`${line.label}-${index}-${line.english}`}
+            className={styles.posterLine}
+            style={{
+              "--line-size": line.size,
+              "--line-width": line.width,
+              "--line-indent": line.indent,
+              "--line-leading": line.leading,
+              "--line-opacity": line.opacity
+            } as React.CSSProperties}
+          >
+            {line.fragments.map((fragment, fragmentIndex) =>
+              fragment.type === "emoji" ? (
+                <span className={styles.emoji} key={`${fragment.value}-${fragmentIndex}`}>
+                  {fragment.value}
+                </span>
+              ) : (
+                <span key={`${fragment.value}-${fragmentIndex}`}>{fragment.value}</span>
+              )
+            )}
+          </div>
+        ))}
+      </div>
+      <div className={styles.posterFoot}>
+        <span>Designed with everyday words</span>
+        <span>CN / EN / Emoji</span>
+      </div>
     </div>
   );
 }
@@ -345,8 +347,4 @@ function ColorControl({
       </div>
     </label>
   );
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
 }
