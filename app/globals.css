@@ -1,12 +1,7 @@
 :root {
-  --page-bg: #151515;
-  --panel-bg: rgba(248, 248, 242, 0.06);
-  --panel-border: rgba(255, 255, 255, 0.14);
-  --muted: rgba(255, 255, 255, 0.62);
-  --text: #f8f8f0;
-  --accent: #d7ff68;
-  --control-bg: rgba(255, 255, 255, 0.08);
-  --control-bg-strong: rgba(255, 255, 255, 0.14);
+  --font-sans: "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    Arial, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
 * {
@@ -17,13 +12,12 @@ html,
 body {
   min-height: 100%;
   margin: 0;
-  background: var(--page-bg);
-  color: var(--text);
+  background: #f7f7f3;
+  color: #11110f;
 }
 
 body {
-  font-family: "Arial Narrow", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", Arial, sans-serif;
+  font-family: var(--font-sans);
   letter-spacing: 0;
 }
 
@@ -39,5 +33,23 @@ button {
 }
 
 ::selection {
-  background: rgba(215, 255, 104, 0.32);
+  background: #d8ff3e;
+  color: #11110f;
+}
+
+button:focus-visible,
+textarea:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #11110f;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

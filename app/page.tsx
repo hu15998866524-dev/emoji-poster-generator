@@ -38,6 +38,7 @@ export default function Home() {
   const [density, setDensity] = useState<Density>("medium");
   const [ratio, setRatio] = useState<AspectRatio>("9:16");
   const [fontSize, setFontSize] = useState(posterPresets[ratio].defaultFontSize);
+  const [previewZoom, setPreviewZoom] = useState(66);
   const [englishOverrides, setEnglishOverrides] = useState<Record<string, string>>({});
   const posterRef = useRef<HTMLDivElement>(null);
   const labelsNeedingEnglish = useMemo(() => getLabelsNeedingEnglish(input), [input]);
@@ -125,126 +126,268 @@ export default function Home() {
 
   return (
     <main className={styles.app}>
-      <section className={styles.stage} aria-label="海报预览">
-        <div
-          className={`${styles.posterFrame} ${
-            posterPresets[ratio].orientation === "landscape" ? styles.landscape : ""
-          } ${posterPresets[ratio].orientation === "square" ? styles.square : ""}`}
-        >
-          <PosterCanvas
-            refNode={posterRef}
-            lines={lines}
-            bgColor={bgColor}
-            bgImage={bgImage}
-            textColor={textColor}
-            fontSize={fontSize}
-            ratio={ratio}
-          />
+      <header className={styles.topbar}>
+        <div className={styles.wordmark}>MIXTYPE</div>
+        <div className={styles.brandDivider} />
+        <h1>文字封面生成器</h1>
+        <div className={styles.topbarMeta}>
+          <span>Poster studio</span>
+          <span>v0.2</span>
         </div>
-      </section>
+      </header>
 
-      <aside className={styles.studio} aria-label="海报控制台">
-        <div className={styles.brandBlock}>
-          <p>Emoji Poster Generator</p>
-          <h1>文字封面生成器</h1>
-        </div>
-
-        <label className={styles.inputBlock}>
-          <span>输入文案</span>
-          <textarea
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder="输入中文关键词，每行、逗号或顿号都会参与拆分，英文会自动匹配"
-          />
-        </label>
-
-        <div className={styles.actions}>
-          <button className={styles.primaryButton} onClick={generateFromTextarea}>
-            生成
-          </button>
-          <button className={styles.secondaryButton} onClick={randomize}>
-            随机重排
-          </button>
-          <button className={styles.secondaryButton} onClick={exportPng}>
-            导出 PNG
-          </button>
-        </div>
-
-        <div className={styles.controlGrid}>
-          <ColorControl label="背景颜色" value={bgColor} onChange={setBgColor} />
-          <ColorControl label="文字颜色" value={textColor} onChange={setTextColor} />
-
-          <label className={`${styles.control} ${styles.imageControl}`}>
-            <span>背景图片</span>
-            <div className={styles.imageUploadRow}>
-              <input type="file" accept="image/*" onChange={uploadBackgroundImage} />
-              {bgImage ? (
-                <button type="button" onClick={removeBackgroundImage}>
-                  移除
-                </button>
-              ) : null}
+      <div className={styles.workspace}>
+        <section className={styles.stage} aria-label="海报预览">
+          <div className={styles.stageHeader}>
+            <div>
+              <span className={styles.stageLabel}>预览</span>
+              <span className={styles.stageSize}>
+                {posterPresets[ratio].label} · {ratio}
+              </span>
             </div>
-            <small>{bgImageName || "未上传图片"}</small>
-          </label>
+            <span className={styles.liveStatus}>
+              <i />
+              实时生成
+            </span>
+          </div>
 
-          <label className={styles.control}>
-            <span>Emoji 密度</span>
-            <select
-              value={density}
-              onChange={(event) => setDensity(event.target.value as Density)}
+          <div className={styles.canvasArea}>
+            <div
+              className={`${styles.posterFrame} ${
+                posterPresets[ratio].orientation === "landscape" ? styles.landscape : ""
+              } ${posterPresets[ratio].orientation === "square" ? styles.square : ""}`}
+              style={{ "--preview-scale": previewZoom / 66 } as React.CSSProperties}
             >
-              <option value="low">少</option>
-              <option value="medium">中</option>
-              <option value="high">多</option>
-            </select>
-          </label>
+              <PosterCanvas
+                refNode={posterRef}
+                lines={lines}
+                bgColor={bgColor}
+                bgImage={bgImage}
+                textColor={textColor}
+                fontSize={fontSize}
+                ratio={ratio}
+              />
+            </div>
+          </div>
 
-          <label className={styles.control}>
-            <span>画布比例</span>
-            <select
-              value={ratio}
-              onChange={(event) => {
-                const nextRatio = event.target.value as AspectRatio;
-                setRatio(nextRatio);
-                setFontSize(posterPresets[nextRatio].defaultFontSize);
-              }}
-            >
-              {RATIO_OPTIONS.map((option) => (
-                <option value={option} key={option}>
-                  {posterPresets[option].label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <label className={styles.slider}>
-          <span>字体大小</span>
-          <strong>{fontSize}px</strong>
-          <input
-            type="range"
-            min={MIN_FONT_SIZE}
-            max={MAX_FONT_SIZE}
-            value={fontSize}
-            onChange={(event) => setFontSize(Number(event.target.value))}
-          />
-        </label>
-
-        <div className={styles.examples}>
-          {examples.map((example) => (
-            <button
-              key={example.name}
-              onClick={() => {
-                setInput(example.text);
-                setSeed(example.seed);
-              }}
-            >
-              {example.name}
+          <div className={styles.stageFooter}>
+            <div className={styles.zoomControl} aria-label="预览缩放">
+              <button
+                type="button"
+                aria-label="缩小"
+                disabled={previewZoom <= 46}
+                onClick={() => setPreviewZoom((current) => Math.max(46, current - 10))}
+              >
+                −
+              </button>
+              <span>{previewZoom}%</span>
+              <button
+                type="button"
+                aria-label="放大"
+                disabled={previewZoom >= 96}
+                onClick={() => setPreviewZoom((current) => Math.min(96, current + 10))}
+              >
+                ＋
+              </button>
+            </div>
+            <button className={styles.canvasHint} type="button" onClick={() => setPreviewZoom(66)}>
+              <FrameIcon />
+              <span>自动适应画布</span>
             </button>
-          ))}
-        </div>
-      </aside>
+          </div>
+        </section>
+
+        <aside className={styles.studio} aria-label="海报控制台">
+          <section className={styles.panelSection}>
+            <SectionHeading number="01" title="文案" />
+            <label className={styles.inputBlock}>
+              <span>输入关键词</span>
+              <textarea
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                placeholder="每行输入一个关键词，英文会自动匹配"
+              />
+              <small>{input.length} / 500</small>
+            </label>
+
+            <div className={styles.actions}>
+              <button className={styles.primaryButton} onClick={generateFromTextarea}>
+                <SparkIcon />
+                生成版式
+              </button>
+              <button className={styles.secondaryButton} onClick={randomize}>
+                <ShuffleIcon />
+                随机重排
+              </button>
+            </div>
+
+            <div className={styles.exampleHeader}>
+              <span>示例预设</span>
+              <span>点击使用</span>
+            </div>
+            <div className={styles.examples}>
+              {examples.slice(0, 6).map((example) => (
+                <button
+                  key={example.name}
+                  onClick={() => {
+                    setInput(example.text);
+                    setSeed(example.seed);
+                  }}
+                >
+                  <strong>{example.name}</strong>
+                  <span>{example.text.split("\n").slice(0, 2).join(" / ")}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className={styles.panelSection}>
+            <SectionHeading number="02" title="画布" />
+            <div className={styles.canvasControls}>
+              <fieldset className={styles.ratioControl}>
+                <legend>画布比例</legend>
+                <div>
+                  {RATIO_OPTIONS.map((option) => (
+                    <button
+                      type="button"
+                      className={ratio === option ? styles.selected : ""}
+                      aria-pressed={ratio === option}
+                      onClick={() => {
+                        setRatio(option);
+                        setFontSize(posterPresets[option].defaultFontSize);
+                      }}
+                      key={option}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <label className={styles.control}>
+                <span>Emoji 密度</span>
+                <select
+                  value={density}
+                  onChange={(event) => setDensity(event.target.value as Density)}
+                >
+                  <option value="low">少</option>
+                  <option value="medium">中</option>
+                  <option value="high">多</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section className={`${styles.panelSection} ${styles.styleSection}`}>
+            <SectionHeading number="03" title="样式" />
+            <div className={styles.controlGrid}>
+              <ColorControl label="背景颜色" value={bgColor} onChange={setBgColor} />
+              <ColorControl label="文字颜色" value={textColor} onChange={setTextColor} />
+
+              <label className={`${styles.control} ${styles.imageControl}`}>
+                <span>背景图片</span>
+                <div className={styles.imageUpload}>
+                  <UploadIcon />
+                  <strong>{bgImageName || "点击上传或拖拽图片到此处"}</strong>
+                  <small>支持 JPG / PNG，建议 1080 × 1350 或更高</small>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={uploadBackgroundImage}
+                    aria-label="上传背景图片"
+                  />
+                </div>
+                {bgImage ? (
+                  <button className={styles.removeImage} type="button" onClick={removeBackgroundImage}>
+                    移除背景图片
+                  </button>
+                ) : null}
+              </label>
+
+              <label className={styles.slider}>
+                <span>字体大小</span>
+                <strong>{fontSize}px</strong>
+                <div className={styles.sliderRow}>
+                  <span>A</span>
+                  <input
+                    type="range"
+                    min={MIN_FONT_SIZE}
+                    max={MAX_FONT_SIZE}
+                    value={fontSize}
+                    onChange={(event) => setFontSize(Number(event.target.value))}
+                  />
+                  <span className={styles.largeA}>A</span>
+                </div>
+              </label>
+            </div>
+
+            <div className={styles.bottomActions}>
+              <button className={styles.primaryButton} onClick={generateFromTextarea}>
+                <SparkIcon />
+                生成版式
+              </button>
+              <button className={styles.exportButton} onClick={exportPng}>
+                <DownloadIcon />
+                导出 PNG
+              </button>
+            </div>
+          </section>
+        </aside>
+      </div>
     </main>
+  );
+}
+
+function SectionHeading({ number, title }: { number: string; title: string }) {
+  return (
+    <div className={styles.sectionHeading}>
+      <h2>
+        <span>{number}</span>
+        {title}
+      </h2>
+      <span aria-hidden="true">−</span>
+    </div>
+  );
+}
+
+function SparkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 2l1.45 5.15L18 9l-4.55 1.85L12 16l-1.45-5.15L6 9l4.55-1.85L12 2Z" />
+      <path d="m19 14 .75 2.25L22 17l-2.25.75L19 20l-.75-2.25L16 17l2.25-.75L19 14Z" />
+    </svg>
+  );
+}
+
+function ShuffleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M16 3h5v5M4 18l5.5-5.5M21 3l-7.2 7.2M16 21h5v-5M4 6h3.5L21 19.5" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3v12M7.5 10.5 12 15l4.5-4.5M4 17v3h16v-3" />
+    </svg>
+  );
+}
+
+function UploadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 16V4M7.5 8.5 12 4l4.5 4.5M5 14v5h14v-5" />
+    </svg>
+  );
+}
+
+function FrameIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" />
+    </svg>
   );
 }
 
