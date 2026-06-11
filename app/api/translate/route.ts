@@ -15,7 +15,14 @@ export async function POST(request: Request) {
   }
 
   const pairs = await Promise.all(
-    texts.map(async (text) => [text, await translateChineseToEnglish(text)] as const)
+    texts.map(async (text) => {
+      try {
+        return [text, await translateChineseToEnglish(text)] as const;
+      } catch (error) {
+        console.warn(`Translation failed for "${text}"`, error);
+        return [text, ""] as const;
+      }
+    })
   );
 
   return NextResponse.json({

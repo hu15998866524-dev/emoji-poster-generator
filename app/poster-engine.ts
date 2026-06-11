@@ -1,5 +1,12 @@
 export type Density = "low" | "medium" | "high";
 export type AspectRatio = "9:16" | "2:3" | "3:4" | "1:1" | "4:3" | "3:2" | "16:9";
+export type LayoutStyle = "dynamic" | "editorial" | "centered" | "stacked";
+
+export type LineOverride = {
+  emoji?: string;
+  english?: string;
+  size?: number;
+};
 
 type Fragment = {
   type: "text" | "emoji";
@@ -9,6 +16,7 @@ type Fragment = {
 export type PosterLine = {
   label: string;
   english: string;
+  emoji: string;
   fragments: Fragment[];
   size: string;
   width: string;
@@ -21,6 +29,8 @@ type BuildOptions = {
   density: Density;
   seed: number;
   englishOverrides?: Record<string, string>;
+  layoutStyle?: LayoutStyle;
+  lineOverrides?: Record<number, LineOverride>;
 };
 
 const semanticRules: Array<{ keys: string[]; english: string; emoji: string[] }> = [
@@ -44,7 +54,21 @@ const semanticRules: Array<{ keys: string[]; english: string; emoji: string[] }>
   { keys: ["时间", "计划", "节奏"], english: "Time", emoji: ["⏳", "📍", "🗓️"] }
 ];
 
-const fullEmojiPool = buildFullEmojiPool();
+export const curatedEmojiPool = [
+  "😀", "😄", "😆", "😊", "🙂", "😉", "😍", "🤩", "😎", "🥳",
+  "🤔", "🫡", "😶‍🌫️", "😮‍💨", "😵‍💫", "🥹", "😂", "😭", "😤", "😴",
+  "👋", "👏", "🙌", "🤝", "👍", "✌️", "🤞", "🫶", "💪", "🙏",
+  "🧠", "👀", "👁️", "💬", "💭", "❤️", "❤️‍🔥", "💛", "💚", "💙",
+  "✨", "⭐", "🌟", "💫", "🔥", "🌈", "☀️", "🌙", "☁️", "🌧️",
+  "🌊", "🌿", "🍀", "🌱", "🌸", "🌻", "🪴", "🍎", "🍋", "☕",
+  "🍞", "🥖", "🎂", "🎈", "🎉", "🎵", "🎧", "🎸", "🎨", "🎬",
+  "📷", "💡", "🔎", "📍", "🧭", "⏳", "⏰", "🗓️", "✏️", "📝",
+  "📚", "📖", "📎", "📌", "📦", "💼", "🧰", "🧩", "🎯", "🏆",
+  "🚀", "✈️", "🚲", "🚶", "🏠", "🏙️", "⛰️", "🏖️", "🌍", "🪐",
+  "💻", "📱", "⌨️", "🖥️", "⚙️", "🔧", "🔒", "🔑", "🔔", "📣",
+  "🪄", "🪞", "🔭", "🪜", "🧵", "🫧", "🪽", "♟️", "🎱", "❔",
+  "✦", "☻", "☾", "🌘", "🌀", "🌫️"
+];
 
 const extraEmojiRate: Record<Density, number> = {
   low: 0,
@@ -237,22 +261,72 @@ export function buildPosterLines(text: string, options: BuildOptions): PosterLin
 
   return source.slice(0, 16).map((token, index) => {
     const rng = mulberry32(options.seed + index * 101);
-    const pattern = layoutPatterns[(index + Math.floor(rng() * layoutPatterns.length)) % layoutPatterns.length];
+    const layoutStyle = options.layoutStyle ?? "dynamic";
+    const basePattern =
+      layoutPatterns[(index + Math.floor(rng() * layoutPatterns.length)) % layoutPatterns.length];
+    const pattern = applyLayoutStyle(basePattern, layoutStyle, index);
     const parsed = parseToken(token, options.englishOverrides);
-    const emoji = pickEmoji(token, rng);
+    const override = options.lineOverrides?.[index];
+    const english = override?.english ?? parsed.english;
+    const emoji = override?.emoji ?? pickEmoji(token, rng);
     const extraEmoji = rng() < extraEmojiRate[options.density] ? pickEmoji(token, rng) : null;
-    const fragments = buildFragments(parsed.label, parsed.english, emoji, extraEmoji, rng);
+    const fragments = buildFragments(parsed.label, english, emoji, extraEmoji, rng);
+    const size = clamp(
+      (pattern.size + (rng() - 0.5) * 0.14) * (override?.size ?? 1),
+      0.5,
+      1.65
+    );
 
     return {
       ...parsed,
+      english,
+      emoji,
       fragments,
-      size: `${clamp(pattern.size + (rng() - 0.5) * 0.14, 0.62, 1.38).toFixed(2)}`,
+      size: size.toFixed(2),
       width: `${clamp(pattern.width + (rng() - 0.5) * 14, 52, 98).toFixed(0)}%`,
       indent: `${clamp(pattern.indent + (rng() - 0.5) * 18, 0, 42).toFixed(0)}%`,
       leading: `${clamp(pattern.leading + (rng() - 0.5) * 0.08, 0.78, 1.08).toFixed(2)}`,
       opacity: Number(clamp(pattern.opacity + (rng() - 0.5) * 0.08, 0.82, 1).toFixed(2))
     };
   });
+}
+
+function applyLayoutStyle(
+  pattern: (typeof layoutPatterns)[number],
+  style: LayoutStyle,
+  index: number
+) {
+  if (style === "editorial") {
+    return {
+      ...pattern,
+      size: index === 0 ? 1.34 : index % 3 === 0 ? 1.02 : 0.78,
+      width: index === 0 ? 96 : 78,
+      indent: index % 2 === 0 ? 0 : 18,
+      leading: 0.92
+    };
+  }
+
+  if (style === "centered") {
+    return {
+      ...pattern,
+      size: index % 4 === 0 ? 1.18 : 0.86,
+      width: 92,
+      indent: 4,
+      leading: 0.9
+    };
+  }
+
+  if (style === "stacked") {
+    return {
+      ...pattern,
+      size: index % 2 === 0 ? 1.16 : 0.72,
+      width: index % 2 === 0 ? 94 : 72,
+      indent: index % 2 === 0 ? 0 : 24,
+      leading: 0.82
+    };
+  }
+
+  return pattern;
 }
 
 function splitInput(text: string) {
@@ -334,117 +408,8 @@ function buildFragments(
 
 function pickEmoji(token: string, rng: () => number) {
   const rule = matchSemanticRule(token);
-  const pool = rule ? [...rule.emoji, ...fullEmojiPool] : fullEmojiPool;
+  const pool = rule && rng() < 0.75 ? rule.emoji : curatedEmojiPool;
   return pool[Math.floor(rng() * pool.length) % pool.length];
-}
-
-function buildFullEmojiPool() {
-  const emojiRanges = [
-    [0x1f300, 0x1f5ff],
-    [0x1f600, 0x1f64f],
-    [0x1f680, 0x1f6ff],
-    [0x1f900, 0x1f9ff],
-    [0x1fa70, 0x1faff]
-  ];
-  const symbolRanges = [
-    [0x2600, 0x26ff],
-    [0x2700, 0x27bf]
-  ];
-  const zwjEmoji = [
-    "😶‍🌫️",
-    "🙂‍↔️",
-    "🙂‍↕️",
-    "😮‍💨",
-    "😵‍💫",
-    "❤️‍🔥",
-    "❤️‍🩹",
-    "👁️‍🗨️",
-    "🧑‍💻",
-    "👨‍💻",
-    "👩‍💻",
-    "🧑‍🎨",
-    "👨‍🎨",
-    "👩‍🎨",
-    "🧑‍🚀",
-    "👨‍🚀",
-    "👩‍🚀",
-    "🧑‍🍳",
-    "👨‍🍳",
-    "👩‍🍳",
-    "🧑‍🔬",
-    "👨‍🔬",
-    "👩‍🔬",
-    "🧑‍🏫",
-    "👨‍🏫",
-    "👩‍🏫",
-    "🧑‍🚒",
-    "👨‍🚒",
-    "👩‍🚒",
-    "🧑‍⚕️",
-    "👨‍⚕️",
-    "👩‍⚕️",
-    "🧑‍⚖️",
-    "👨‍⚖️",
-    "👩‍⚖️",
-    "🏳️‍🌈",
-    "🏳️‍⚧️",
-    "🏴‍☠️"
-  ];
-  const countryFlags = [
-    "CN",
-    "US",
-    "JP",
-    "KR",
-    "GB",
-    "FR",
-    "DE",
-    "IT",
-    "ES",
-    "PT",
-    "NL",
-    "SE",
-    "NO",
-    "FI",
-    "DK",
-    "AU",
-    "CA",
-    "BR",
-    "IN",
-    "SG",
-    "TH",
-    "VN",
-    "MY",
-    "ID",
-    "PH",
-    "AE",
-    "SA",
-    "TR",
-    "MX",
-    "AR",
-    "ZA",
-    "EG"
-  ].map(toFlagEmoji);
-
-  return Array.from(
-    new Set([
-      ...emojiRanges.flatMap(([start, end]) => codePointRange(start, end)),
-      ...symbolRanges.flatMap(([start, end]) => codePointRange(start, end, "\ufe0f")),
-      ...zwjEmoji,
-      ...countryFlags
-    ])
-  );
-}
-
-function codePointRange(start: number, end: number, suffix = "") {
-  return Array.from({ length: end - start + 1 }, (_, index) =>
-    String.fromCodePoint(start + index) + suffix
-  );
-}
-
-function toFlagEmoji(countryCode: string) {
-  return Array.from(countryCode.toUpperCase())
-    .map((letter) => String.fromCodePoint(0x1f1e6 + letter.charCodeAt(0) - 65))
-    .join("");
 }
 
 function resolveEnglish(label: string, englishOverrides: Record<string, string> = {}) {
