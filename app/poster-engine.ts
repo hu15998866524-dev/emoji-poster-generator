@@ -1,11 +1,13 @@
 export type Density = "low" | "medium" | "high";
 export type AspectRatio = "9:16" | "2:3" | "3:4" | "1:1" | "4:3" | "3:2" | "16:9";
 export type LayoutStyle = "dynamic" | "editorial" | "centered" | "stacked";
+export type AccentStyle = "none" | "reverse" | "wave" | "marker";
 
 export type LineOverride = {
   emoji?: string;
   english?: string;
   size?: number;
+  accent?: AccentStyle;
 };
 
 type Fragment = {
@@ -23,6 +25,7 @@ export type PosterLine = {
   indent: string;
   leading: string;
   opacity: number;
+  accent: AccentStyle;
 };
 
 type BuildOptions = {
@@ -31,6 +34,7 @@ type BuildOptions = {
   englishOverrides?: Record<string, string>;
   layoutStyle?: LayoutStyle;
   lineOverrides?: Record<number, LineOverride>;
+  accentStyle?: AccentStyle;
 };
 
 const semanticRules: Array<{ keys: string[]; english: string; emoji: string[] }> = [
@@ -258,6 +262,7 @@ export const examples = [
 export function buildPosterLines(text: string, options: BuildOptions): PosterLine[] {
   const tokens = splitInput(text);
   const source = tokens.length > 0 ? tokens : splitInput(examples[0].text);
+  const accentIndexes = pickAccentIndexes(source.length, options.seed);
 
   return source.slice(0, 16).map((token, index) => {
     const rng = mulberry32(options.seed + index * 101);
@@ -286,9 +291,26 @@ export function buildPosterLines(text: string, options: BuildOptions): PosterLin
       width: `${clamp(pattern.width + (rng() - 0.5) * 14, 52, 98).toFixed(0)}%`,
       indent: `${clamp(pattern.indent + (rng() - 0.5) * 18, 0, 42).toFixed(0)}%`,
       leading: `${clamp(pattern.leading + (rng() - 0.5) * 0.08, 0.78, 1.08).toFixed(2)}`,
-      opacity: Number(clamp(pattern.opacity + (rng() - 0.5) * 0.08, 0.82, 1).toFixed(2))
+      opacity: Number(clamp(pattern.opacity + (rng() - 0.5) * 0.08, 0.82, 1).toFixed(2)),
+      accent:
+        override?.accent ??
+        (accentIndexes.has(index) ? (options.accentStyle ?? "marker") : "none")
     };
   });
+}
+
+function pickAccentIndexes(lineCount: number, seed: number) {
+  const indexes = new Set<number>();
+  if (lineCount < 2) return indexes;
+
+  const rng = mulberry32(seed * 17 + 29);
+  const targetCount = lineCount >= 6 && rng() > 0.42 ? 2 : 1;
+
+  while (indexes.size < Math.min(targetCount, lineCount)) {
+    indexes.add(Math.floor(rng() * lineCount));
+  }
+
+  return indexes;
 }
 
 function applyLayoutStyle(

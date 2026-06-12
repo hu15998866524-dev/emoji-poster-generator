@@ -5,6 +5,16 @@
   color: #11110f;
 }
 
+.draftLoading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  color: #686962;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
 .topbar {
   height: 56px;
   display: flex;
@@ -220,8 +230,53 @@
   cursor: pointer;
 }
 
+.posterLineButton[draggable="true"] {
+  cursor: grab;
+}
+
+.posterLineButton[draggable="true"]:active {
+  cursor: grabbing;
+}
+
 .posterLineButton:hover {
   z-index: 3;
+}
+
+.lineContent {
+  display: inline;
+  position: relative;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.accentMarker {
+  z-index: 0;
+  padding: 0 0.08em;
+  background:
+    linear-gradient(
+      178deg,
+      transparent 20%,
+      color-mix(in srgb, currentColor 18%, #ffef58) 20% 82%,
+      transparent 82%
+    );
+}
+
+.accentReverse {
+  padding: 0.03em 0.16em 0.07em;
+  background: var(--poster-text-color);
+  color: var(--accent-contrast, #fff);
+  box-shadow: 0.08em 0.08em 0 rgba(0, 0, 0, 0.2);
+}
+
+.accentWave {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-thickness: 0.055em;
+  text-underline-offset: 0.14em;
+}
+
+.draggingLine {
+  opacity: 0.38 !important;
 }
 
 .selectionRing {
@@ -354,6 +409,11 @@
   align-items: center;
 }
 
+.stageTools {
+  display: flex;
+  gap: 8px;
+}
+
 .zoomControl,
 .canvasHint {
   display: flex;
@@ -397,6 +457,11 @@
   color: #c6c8c1;
   font-size: 11px;
   cursor: pointer;
+}
+
+.canvasHint:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
 }
 
 .canvasHint svg {
@@ -575,6 +640,57 @@
   stroke-linejoin: round;
 }
 
+.batchPicker {
+  margin-top: 10px;
+  padding: 9px;
+  border: 1px solid #9b9c95;
+  background: #efefe8;
+}
+
+.batchHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 10px;
+}
+
+.batchHeader button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #666760;
+  font-size: 9px;
+  text-decoration: underline;
+}
+
+.batchGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.batchGrid > [role="button"] {
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #8f9089;
+  background: #222;
+  cursor: pointer;
+}
+
+.batchGrid > [role="button"]:hover,
+.batchGrid > [role="button"]:focus-visible {
+  border-color: #11110f;
+  box-shadow: 2px 2px 0 #11110f;
+  outline: none;
+}
+
+.batchGrid .poster {
+  pointer-events: none;
+  border: 0;
+}
+
 .primaryButton svg path:first-child {
   fill: currentColor;
   stroke: none;
@@ -715,6 +831,11 @@
   accent-color: #c9f82a;
 }
 
+.dragHint {
+  color: #777872;
+  font-size: 9px;
+}
+
 .examples {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -823,6 +944,12 @@
   gap: 11px 14px;
 }
 
+.metaGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px 12px;
+}
+
 .colorRow {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr);
@@ -905,6 +1032,13 @@
   text-decoration: underline;
 }
 
+.paletteStatus {
+  color: #53544e;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  line-height: 1.4;
+}
+
 .slider {
   grid-column: 2;
   grid-template-columns: 1fr auto;
@@ -954,9 +1088,9 @@
   .studio {
     display: grid;
     grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
-    grid-template-rows: auto auto 1fr;
-    align-content: stretch;
-    overflow: hidden;
+    grid-template-rows: auto auto auto auto;
+    align-content: start;
+    overflow-y: auto;
   }
 
   .studio > .panelSection:nth-child(1) {
@@ -977,13 +1111,16 @@
   .studio > .panelSection:nth-child(4) {
     grid-column: 1;
     grid-row: 3;
-    border-bottom: 0;
   }
 
   .studio > .panelSection:nth-child(5) {
+    grid-column: 1;
+    grid-row: 4;
+  }
+
+  .studio > .panelSection:nth-child(6) {
     grid-column: 2;
-    grid-row: 3;
-    overflow: hidden;
+    grid-row: 3 / 5;
   }
 
   .studio > .panelSection:nth-child(odd) {
@@ -1002,61 +1139,61 @@
     gap: 9px 12px;
   }
 
-  .studio > .panelSection:nth-child(5) {
+  .studio > .panelSection:nth-child(6) {
     padding: 10px 14px;
   }
 
-  .studio > .panelSection:nth-child(5) .sectionHeading {
+  .studio > .panelSection:nth-child(6) .sectionHeading {
     margin-bottom: 7px;
   }
 
-  .studio > .panelSection:nth-child(5) .controlGrid {
+  .studio > .panelSection:nth-child(6) .controlGrid {
     gap: 5px 9px;
   }
 
-  .studio > .panelSection:nth-child(5) .control {
+  .studio > .panelSection:nth-child(6) .control {
     gap: 4px;
     font-size: 10px;
   }
 
-  .studio > .panelSection:nth-child(5) .control select,
-  .studio > .panelSection:nth-child(5) .control input[type="text"] {
+  .studio > .panelSection:nth-child(6) .control select,
+  .studio > .panelSection:nth-child(6) .control input[type="text"] {
     height: 32px;
   }
 
-  .studio > .panelSection:nth-child(5) .colorRow {
+  .studio > .panelSection:nth-child(6) .colorRow {
     grid-template-columns: 32px minmax(0, 1fr);
   }
 
-  .studio > .panelSection:nth-child(5) .colorRow input[type="color"] {
+  .studio > .panelSection:nth-child(6) .colorRow input[type="color"] {
     width: 32px;
     height: 32px;
   }
 
-  .studio > .panelSection:nth-child(5) .imageUpload {
+  .studio > .panelSection:nth-child(6) .imageUpload {
     min-height: 49px;
     padding: 6px;
   }
 
-  .studio > .panelSection:nth-child(5) .imageUpload small,
-  .studio > .panelSection:nth-child(5) .imageUpload svg {
+  .studio > .panelSection:nth-child(6) .imageUpload small,
+  .studio > .panelSection:nth-child(6) .imageUpload svg {
     display: none;
   }
 
-  .studio > .panelSection:nth-child(5) .slider {
+  .studio > .panelSection:nth-child(6) .slider {
     gap: 3px;
   }
 
-  .studio > .panelSection:nth-child(5) .sliderRow {
+  .studio > .panelSection:nth-child(6) .sliderRow {
     min-height: 34px;
   }
 
-  .studio > .panelSection:nth-child(5) .bottomActions {
+  .studio > .panelSection:nth-child(6) .bottomActions {
     margin-top: 8px;
   }
 
-  .studio > .panelSection:nth-child(5) .primaryButton,
-  .studio > .panelSection:nth-child(5) .exportButton {
+  .studio > .panelSection:nth-child(6) .primaryButton,
+  .studio > .panelSection:nth-child(6) .exportButton {
     min-height: 32px;
   }
 }
